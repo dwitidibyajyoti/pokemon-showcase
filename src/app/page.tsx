@@ -61,7 +61,7 @@ export default function Home() {
       fetch(`https://pokeapi.co/api/v2/type/${selectedType}`)
         .then((res) => res.json())
         .then((data) => {
-          const names = new Set(data.pokemon.map((p: any) => p.pokemon.name));
+          const names = new Set(data.pokemon.map((p: { pokemon: { name: string } }) => p.pokemon.name));
           filtered = filtered.filter((p) => names.has(p.name));
           fetchPokemonDetails(filtered);
         });
