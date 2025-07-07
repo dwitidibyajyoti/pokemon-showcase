@@ -1,103 +1,172 @@
-import Image from "next/image";
+"use client";
+import React, { useEffect, useState } from "react";
+import { Select, Input, Spin, Card, Row, Col, Typography, Form } from "antd";
+import "antd/dist/reset.css";
+import { useRouter } from "next/navigation";
+
+const { Option } = Select;
+const { Title } = Typography;
+
+interface PokemonType {
+  name: string;
+  url: string;
+}
+
+interface PokemonListItem {
+  name: string;
+  url: string;
+}
+
+interface PokemonCardData {
+  name: string;
+  sprites: { front_default: string };
+  types: { type: { name: string } }[];
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [types, setTypes] = useState<PokemonType[]>([]);
+  const [selectedType, setSelectedType] = useState("");
+  const [search, setSearch] = useState("");
+  const [pokemonList, setPokemonList] = useState<PokemonListItem[]>([]);
+  const [filteredPokemon, setFilteredPokemon] = useState<PokemonCardData[]>([]);
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  // Fetch types
+  useEffect(() => {
+    fetch("https://pokeapi.co/api/v2/type")
+      .then((res) => res.json())
+      .then((data) => setTypes(data.results));
+  }, []);
+
+  // Fetch all Pokémon (first 151 for demo)
+  useEffect(() => {
+    setLoading(true);
+    fetch("https://pokeapi.co/api/v2/pokemon?limit=151")
+      .then((res) => res.json())
+      .then((data) => {
+        setPokemonList(data.results);
+        setLoading(false);
+      });
+  }, []);
+
+  // Filter and fetch Pokémon details
+  useEffect(() => {
+    let filtered = pokemonList;
+    if (search) {
+      filtered = filtered.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
+    }
+    if (selectedType) {
+      setLoading(true);
+      fetch(`https://pokeapi.co/api/v2/type/${selectedType}`)
+        .then((res) => res.json())
+        .then((data) => {
+          const names = new Set(data.pokemon.map((p: any) => p.pokemon.name));
+          filtered = filtered.filter((p) => names.has(p.name));
+          fetchPokemonDetails(filtered);
+        });
+    } else {
+      fetchPokemonDetails(filtered);
+    }
+    // eslint-disable-next-line
+  }, [search, selectedType, pokemonList]);
+
+  function fetchPokemonDetails(list: PokemonListItem[]) {
+    setLoading(true);
+    Promise.all(
+      list.slice(0, 20).map((p) =>
+        fetch(p.url)
+          .then((res) => res.json())
+          .then((data) => ({
+            name: data.name,
+            sprites: data.sprites,
+            types: data.types,
+          }))
+      )
+    ).then((results) => {
+      setFilteredPokemon(results);
+      setLoading(false);
+    });
+  }
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#f0f2f5", padding: 24 }}>
+      <Title level={2} style={{ textAlign: "center", marginBottom: 32 }}>Pokémon Search</Title>
+      <Form layout="inline" style={{ justifyContent: "center", marginBottom: 32, display: "flex", gap: 16 }}>
+        <Form.Item label="Type">
+          <Select
+            allowClear
+            showSearch
+            placeholder="Select type"
+            style={{ minWidth: 160 }}
+            value={selectedType || undefined}
+            onChange={(value: string | undefined) => setSelectedType(value || "")}
+            optionFilterProp="children"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            {types.map((type) => (
+              <Option key={type.name} value={type.name}>
+                {type.name.charAt(0).toUpperCase() + type.name.slice(1)}
+              </Option>
+            ))}
+          </Select>
+        </Form.Item>
+        <Form.Item label="Name">
+          <Input
+            placeholder="Search by name"
+            value={search}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
+            style={{ minWidth: 200 }}
+          />
+        </Form.Item>
+      </Form>
+      {loading ? (
+        <div style={{ textAlign: "center", marginTop: 48 }}>
+          <Spin size="large" />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      ) : (
+        <Row gutter={[24, 24]} justify="center">
+          {filteredPokemon.map((pokemon) => (
+            <Col xs={24} sm={12} md={8} lg={6} key={pokemon.name}>
+              <Card
+                hoverable
+                onClick={() => router.push(`/pokemon/${pokemon.name}`)}
+                style={{ borderRadius: 12, cursor: "pointer" }}
+                cover={
+                  <img
+                    alt={pokemon.name}
+                    src={pokemon.sprites.front_default}
+                    style={{ width: 120, height: 120, objectFit: "contain", margin: "0 auto", paddingTop: 16 }}
+                  />
+                }
+              >
+                <Card.Meta
+                  title={<span style={{ textTransform: "capitalize" }}>{pokemon.name}</span>}
+                  description={
+                    <div style={{ marginTop: 8 }}>
+                      {pokemon.types.map((t, i) => (
+                        <span
+                          key={i}
+                          style={{
+                            background: "#e6f7ff",
+                            color: "#1890ff",
+                            borderRadius: 8,
+                            padding: "2px 8px",
+                            fontSize: 12,
+                            marginRight: 4,
+                            textTransform: "capitalize",
+                          }}
+                        >
+                          {t.type.name}
+                        </span>
+                      ))}
+                    </div>
+                  }
+                />
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      )}
     </div>
   );
 }
