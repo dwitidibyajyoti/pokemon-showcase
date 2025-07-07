@@ -1,9 +1,5 @@
-// "use client";
-import { Card, Typography, Alert, Breadcrumb } from "antd";
+import { Card, Alert, Breadcrumb } from "antd";
 import "antd/dist/reset.css";
-// import { useParams } from "next/navigation";
-
-const { Title } = Typography;
 
 async function getPokemon(name: string) {
     const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${name}`);
@@ -12,26 +8,19 @@ async function getPokemon(name: string) {
 }
 
 export default async function PokemonDetailPage({ params }: { params: { name: string } }) {
-
-    // if (window && window.location) {
-    //     const newparams = useParams()
-    // }
-
-    // const newparams = useParams()
-    // console.log(`newparams`, newparams);
-    const name = params?.name
+    const { name } = await Promise.resolve(params); // this avoids the warning
     const pokemon = await getPokemon(name);
-    console.log('pokemon', JSON.stringify(pokemon.name));
+
     if (!pokemon) {
         return <Alert message="Pokémon not found" type="error" showIcon style={{ marginTop: 48 }} />;
     }
+
     return (
         <div style={{ minHeight: "100vh", background: "#f0f2f5", padding: 24, display: "flex", flexDirection: "column", alignItems: "center" }}>
             <Breadcrumb
                 style={{ marginBottom: 24 }}
                 items={[
                     { title: 'Home', href: '/' },
-                    // { title: 'Pokémon', href: '/' },
                     { title: pokemon.name.charAt(0).toUpperCase() + pokemon.name.slice(1) },
                 ]}
             />
@@ -45,7 +34,7 @@ export default async function PokemonDetailPage({ params }: { params: { name: st
                     />
                 }
             >
-                {pokemon && <h2 style={{ fontSize: 24, marginBottom: 16 }}>{pokemon.name}</h2>}{/* {pokemon && <Title level={2}>{pokemon.name}</Title>} */}
+                <h2 style={{ fontSize: 24, marginBottom: 16 }}>{pokemon.name}</h2>
                 <div style={{ marginBottom: 16, textAlign: "center" }}>
                     {pokemon.types.map((t: any, i: number) => (
                         <span
@@ -94,4 +83,4 @@ export default async function PokemonDetailPage({ params }: { params: { name: st
             </Card>
         </div>
     );
-} 
+}
