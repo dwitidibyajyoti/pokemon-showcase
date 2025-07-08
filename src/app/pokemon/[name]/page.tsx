@@ -1,30 +1,15 @@
 import { Card, Alert, Breadcrumb } from "antd";
 import "antd/dist/reset.css";
 import Image from "next/image";
-
-type PokemonType = {
-    name: string;
-    sprites: { front_default: string };
-    types: { type: { name: string } }[];
-    height: number;
-    weight: number;
-    abilities: { ability: { name: string } }[];
-    stats: { base_stat: number; stat: { name: string } }[];
-    moves: { move: { name: string; url: string } }[];
-};
-
-async function getPokemon(name: string): Promise<PokemonType | null> {
-    const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${name}`);
-    if (!res.ok) return null;
-    return res.json();
-}
+import getPokemon from "./getPokemon";
+import type { PokemonType } from "./types";
 
 export default async function PokemonDetailPage({
     params,
 }: {
     params: Promise<{ name: string }>;
 }) {
-    const { name } = await params; // ✅ await the async params
+    const { name } = await params;
     const pokemon = await getPokemon(name);
 
     if (!pokemon) {
@@ -72,7 +57,7 @@ export default async function PokemonDetailPage({
             >
                 <h2 style={{ fontSize: 24, marginBottom: 16 }}>{pokemon.name}</h2>
                 <div style={{ marginBottom: 16, textAlign: "center" }}>
-                    {pokemon.types.map((t, i) => (
+                    {pokemon.types.map((t: { type: { name: string } }, i: number) => (
                         <span
                             key={i}
                             style={{
@@ -97,12 +82,12 @@ export default async function PokemonDetailPage({
                 </div>
                 <div style={{ marginTop: 16 }}>
                     <b>Abilities:</b>{" "}
-                    {pokemon.abilities.map((a) => a.ability.name).join(", ")}
+                    {pokemon.abilities.map((a: { ability: { name: string } }) => a.ability.name).join(", ")}
                 </div>
                 <div style={{ marginTop: 16 }}>
                     <b>Base Stats:</b>
                     <ul style={{ paddingLeft: 20 }}>
-                        {pokemon.stats.map((s) => (
+                        {pokemon.stats.map((s: { base_stat: number; stat: { name: string } }) => (
                             <li key={s.stat.name} style={{ textTransform: "capitalize" }}>
                                 {s.stat.name}: {s.base_stat}
                             </li>
@@ -112,7 +97,7 @@ export default async function PokemonDetailPage({
                 <div style={{ marginTop: 16 }}>
                     <b>Moves:</b>
                     <ul style={{ paddingLeft: 20, maxHeight: 200, overflowY: "auto" }}>
-                        {pokemon.moves.map((m, i) => (
+                        {pokemon.moves.map((m: { move: { name: string; url: string } }, i: number) => (
                             <li key={i}>
                                 <a
                                     href={m.move.url}

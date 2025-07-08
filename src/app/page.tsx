@@ -3,6 +3,11 @@ import React, { useEffect, useState } from "react";
 import { Select, Input, Spin, Card, Row, Col, Typography, Form } from "antd";
 import "antd/dist/reset.css";
 import { useRouter } from "next/navigation";
+// import { getPokemonTypes } from "./getTypes";
+// import { getPokemonList } from "./getPokemonList";
+import { filterPokemon } from "./actions/filterPokemon";
+import { getPokemonTypes } from "./actions/getTypes";
+import { getPokemonList } from "./actions/getPokemonList";
 
 const { Option } = Select;
 const { Title } = Typography;
@@ -34,40 +39,27 @@ export default function Home() {
 
   // Fetch types
   useEffect(() => {
-    fetch("https://pokeapi.co/api/v2/type")
-      .then((res) => res.json())
-      .then((data) => setTypes(data.results));
+    getPokemonTypes().then((data: PokemonType[]) => setTypes(data));
   }, []);
-
   // Fetch all Pokémon (first 151 for demo)
   useEffect(() => {
     setLoading(true);
-    fetch("https://pokeapi.co/api/v2/pokemon?limit=151")
-      .then((res) => res.json())
-      .then((data) => {
-        setPokemonList(data.results);
-        setLoading(false);
-      });
+    getPokemonList().then((data: PokemonListItem[]) => {
+      setPokemonList(data);
+      setLoading(false);
+    });
   }, []);
 
   // Filter and fetch Pokémon details
   useEffect(() => {
-    let filtered = pokemonList;
-    if (search) {
-      filtered = filtered.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
-    }
-    if (selectedType) {
+    const run = async () => {
       setLoading(true);
-      fetch(`https://pokeapi.co/api/v2/type/${selectedType}`)
-        .then((res) => res.json())
-        .then((data) => {
-          const names = new Set(data.pokemon.map((p: { pokemon: { name: string } }) => p.pokemon.name));
-          filtered = filtered.filter((p) => names.has(p.name));
-          fetchPokemonDetails(filtered);
-        });
-    } else {
+      const filtered: PokemonListItem[] = await filterPokemon(pokemonList, search, selectedType);
       fetchPokemonDetails(filtered);
-    }
+      setLoading(false);
+    };
+
+    run();
     // eslint-disable-next-line
   }, [search, selectedType, pokemonList]);
 
