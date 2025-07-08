@@ -38,6 +38,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [favoriteDetails, setFavoriteDetails] = useState<PokemonCardData[]>([]);
 
   // Load favorites from localStorage on mount
   useEffect(() => {
@@ -56,7 +57,9 @@ export default function Home() {
     );
   };
 
-  const favoritePokemon = filteredPokemon.filter((p) => favorites.includes(p.name));
+  // const favoritePokemon = filteredPokemon.filter((p) => favorites.includes(p.name));
+  // const nonFavoritePokemon = filteredPokemon.filter((p) => !favorites.includes(p.name));
+  const favoritePokemon = favoriteDetails;
   const nonFavoritePokemon = filteredPokemon.filter((p) => !favorites.includes(p.name));
 
   // Fetch types
@@ -84,6 +87,29 @@ export default function Home() {
     run();
     // eslint-disable-next-line
   }, [search, selectedType, pokemonList]);
+
+  // Fetch details for all favorite Pokémon
+  useEffect(() => {
+    if (favorites.length === 0) {
+      setFavoriteDetails([]);
+      return;
+    }
+    setLoading(true);
+    Promise.all(
+      favorites.map((name) =>
+        fetch(`https://pokeapi.co/api/v2/pokemon/${name}`)
+          .then((res) => res.json())
+          .then((data) => ({
+            name: data.name,
+            sprites: data.sprites,
+            types: data.types,
+          }))
+      )
+    ).then((results) => {
+      setFavoriteDetails(results);
+      setLoading(false);
+    });
+  }, [favorites]);
 
   function fetchPokemonDetails(list: PokemonListItem[]) {
     setLoading(true);
