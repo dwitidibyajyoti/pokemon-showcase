@@ -2,7 +2,6 @@ import { Card, Alert, Breadcrumb } from "antd";
 import "antd/dist/reset.css";
 import Image from "next/image";
 import getPokemon from "./getPokemon";
-import type { PokemonType } from "./types";
 
 export default async function PokemonDetailPage({
     params,
