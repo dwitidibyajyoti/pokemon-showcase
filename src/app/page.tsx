@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { filterPokemon } from "./actions/filterPokemon";
 import { getPokemonTypes } from "./actions/getTypes";
 import { getPokemonList } from "./actions/getPokemonList";
+import { StarFilled, StarOutlined } from '@ant-design/icons';
 
 const { Option } = Select;
 const { Title } = Typography;
@@ -36,6 +37,27 @@ export default function Home() {
   const [filteredPokemon, setFilteredPokemon] = useState<PokemonCardData[]>([]);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const [favorites, setFavorites] = useState<string[]>([]);
+
+  // Load favorites from localStorage on mount
+  useEffect(() => {
+    const favs = localStorage.getItem('favorites');
+    if (favs) setFavorites(JSON.parse(favs));
+  }, []);
+
+  // Store favorites in localStorage when changed
+  useEffect(() => {
+    localStorage.setItem('favorites', JSON.stringify(favorites));
+  }, [favorites]);
+
+  const toggleFavorite = (name: string) => {
+    setFavorites((prev) =>
+      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]
+    );
+  };
+
+  const favoritePokemon = filteredPokemon.filter((p) => favorites.includes(p.name));
+  const nonFavoritePokemon = filteredPokemon.filter((p) => !favorites.includes(p.name));
 
   // Fetch types
   useEffect(() => {
@@ -84,6 +106,62 @@ export default function Home() {
   return (
     <div style={{ minHeight: "100vh", background: "#f0f2f5", padding: 24 }}>
       <Title level={2} style={{ textAlign: "center", marginBottom: 32 }}>Pokémon Search</Title>
+      {/* Favorites Section */}
+      {favorites.length > 0 && (
+        <div style={{ marginBottom: 32 }}>
+          <Title level={4}>Favorites</Title>
+          <Row gutter={[16, 16]} justify="center">
+            {favoritePokemon.map((pokemon) => (
+              <Col xs={12} sm={8} md={6} lg={4} key={pokemon.name}>
+                <Card
+                  hoverable
+                  onClick={() => router.push(`/pokemon/${pokemon.name}`)}
+                  style={{ borderRadius: 12, cursor: "pointer", border: '2px solid #faad14', width: 120, margin: '0 auto' }}
+                  cover={
+                    <img
+                      alt={pokemon.name}
+                      src={pokemon.sprites.front_default}
+                      style={{ width: 60, height: 60, objectFit: "contain", margin: "0 auto", paddingTop: 8 }}
+                    />
+                  }
+                  actions={[
+                    favorites.includes(pokemon.name) ? (
+                      <StarFilled key="star" style={{ color: '#faad14' }} onClick={e => { e.stopPropagation(); toggleFavorite(pokemon.name); }} />
+                    ) : (
+                      <StarOutlined key="star" onClick={e => { e.stopPropagation(); toggleFavorite(pokemon.name); }} />
+                    )
+                  ]}
+                >
+                  <Card.Meta
+                    title={<span style={{ textTransform: "capitalize", fontSize: 14 }}>{pokemon.name}</span>}
+                    description={
+                      <div style={{ marginTop: 4 }}>
+                        {pokemon.types.map((t, i) => (
+                          <span
+                            key={i}
+                            style={{
+                              background: "#e6f7ff",
+                              color: "#1890ff",
+                              borderRadius: 8,
+                              padding: "1px 4px",
+                              fontSize: 10,
+                              marginRight: 2,
+                              textTransform: "capitalize",
+                            }}
+                          >
+                            {t.type.name}
+                          </span>
+                        ))}
+                      </div>
+                    }
+                  />
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        </div>
+      )}
+      {/* Main Pokémon List (excluding favorites) */}
       <Form layout="inline" style={{ justifyContent: "center", marginBottom: 32, display: "flex", gap: 16 }}>
         <Form.Item label="Type">
           <Select
@@ -117,7 +195,7 @@ export default function Home() {
         </div>
       ) : (
         <Row gutter={[24, 24]} justify="center">
-          {filteredPokemon.map((pokemon) => (
+          {nonFavoritePokemon.map((pokemon) => (
             <Col xs={24} sm={12} md={8} lg={6} key={pokemon.name}>
               <Card
                 hoverable
@@ -130,6 +208,13 @@ export default function Home() {
                     style={{ width: 120, height: 120, objectFit: "contain", margin: "0 auto", paddingTop: 16 }}
                   />
                 }
+                actions={[
+                  favorites.includes(pokemon.name) ? (
+                    <StarFilled key="star" style={{ color: '#faad14' }} onClick={e => { e.stopPropagation(); toggleFavorite(pokemon.name); }} />
+                  ) : (
+                    <StarOutlined key="star" onClick={e => { e.stopPropagation(); toggleFavorite(pokemon.name); }} />
+                  )
+                ]}
               >
                 <Card.Meta
                   title={<span style={{ textTransform: "capitalize" }}>{pokemon.name}</span>}
